@@ -147,14 +147,14 @@ def programme():
     if not href:
         # TV Shows menu
         soup = dws.get_html(dws.DW_PROGRAMME_URI)
-        content = soup.find("div", {"id": "bodyContent"}).extract()
-        items = content.find_all("div", "epg")
+        content = soup.find("section", {"id": "program-video-list"}).extract()
+        items = content.find_all("div", {"class": "teaser-wrap"})
         for item in items:
-            img = item.find("img")
-            title = item.find("h2").text.encode("utf-8")
-            action = item.find("a", string="All videos")
+            img = item.find("img", {"class", "hq-img"})
+            title = item.find("h3").text.encode("utf-8")
+            action = item.find("a", {"class": "teaser-image"})
             pid = dws.get_program_id(action.get("href"))
-            plot = item.find("p").text.strip()
+            plot = item.find("div", {"class","teaser-description"}).text.strip()
             add_menu_item(programme,
                           title,
                           {"href": dws.get_search_url(pid=pid), "category": title},

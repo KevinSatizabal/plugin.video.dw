@@ -13,11 +13,13 @@ from cache import Cache, Store, conditional_headers
 
 from . import kodiutils as ku
 
+import xbmc
+
 DW_URI = "https://www.dw.com/"
 DW_MEDIA_URL = "{}en/media-center/".format(DW_URI)
 DW_MEDIA_LIVE_URI = "{}live-tv/s-100825".format(DW_MEDIA_URL)
 DW_MEDIA_ALL_URL = "{}all-media-content/s-100826".format(DW_MEDIA_URL)
-DW_PROGRAMME_URI = "{}en/tv/tv-programs/s-9103".format(DW_URI)
+
 
 DW_SEARCH_TEMPLATE = "{}mediafilter/research?" \
                      "lang={{}}&type=18&results=0&showteasers=t&first={{}}{{}}{{}}{{}}".format(DW_URI)
@@ -28,37 +30,41 @@ SEARCH_LANGUAGE = ku.get_setting("search_language")
 SEARCH_MAX_RESULTS = ku.get_setting_as_int("search_max_results")
 SEARCH_TIMEOUT = 60
 
+def get_programme_uri():
+    """Retrieve the program URL for a specific language."""
+    if SEARCH_LANGUAGE == 'en':
+        return "{}en/all-shows/programs-en".format(DW_URI)
+    elif SEARCH_LANGUAGE == 'es':
+        return "{}es/todos-los-programas/programs-es".format(DW_URI)
+    elif SEARCH_LANGUAGE == 'ar':
+        return "{}ar/جميع-البرامج/programs-ar".format(DW_URI)
+    elif SEARCH_LANGUAGE == 'de':
+        return "{}de/alle-sendungen/programs-de".format(DW_URI)
+
+DW_PROGRAMME_URI = get_programme_uri()
+
 searches = Store("app://saved-searches")
 recents = Store("app://recently-viewed")
 logger = logging.getLogger(__name__)
-
 
 def get_info(href):
     # type: (str) -> dict
     """Gets the info for playable item; title, image, path, etc"""
     soup = get_html(href)
-    item = soup.find("div", "mediaItem").extract()
-    plot = soup.find("p", "intro")
-    title = item.find("input", {"name": "media_title"}).get("value")
-    video = soup.find("meta", {"property": "og:video"})
-    file_name = item.find("input", {"name": "file_name"})
-    duration = item.find("input", {"name": "file_duration"})
-    preview_image = item.find("input", {"name": "preview_image"})
-    path = None
-    if video:
-        path = video.get("content")
-    elif file_name:
-        flv = file_name.get("value")
-        path = get_m3u8_url(flv)
-        if not path:  # fallback to the low-res flv if no mp4 or mu38...
-            path = flv
+    item = soup.find("article", {"class": "sk6xmai"}).extract()
+    plot = soup.find("p", {"class": "teaser-text"})
+    title = item.find("h1", {"class": "headline"}).get("value")
+    video = item.find("video", {"class": "dw-player"})
+    duration = video.get('data-duration')
+    preview_image = video.get('poster')
+    path = video.find('source').get('src')
     return {
         "path": path,
-        "image": get_url(preview_image.get("value")) if preview_image else "",
+        "image": get_url(str(preview_image)) if preview_image else "",
         "info": {
             "title": title,
             "plot": plot.text if plot else title,
-            "duration": int(duration.get("value")) if duration else 0
+            "duration": str(duration) if duration else 0
         }
     }
 
@@ -66,7 +72,7 @@ def get_info(href):
 def get_program_id(url):
     # type: (str) -> str
     """Attempts to extract a programme id from a given url"""
-    search = re.search(r"programs=(\d+)", url)
+    search = re.search(r"program-(\d+)", url)
     return search.group(1) if search else ""
 
 
@@ -103,6 +109,7 @@ def get_url(href):
 def get_m3u8_url(flv):
     # type: (str) -> Optional[str]
     """Attempts to generate a m3u8 URL from the given flv URL"""
+    xbmc.log(str(flv))
     try:
         return DW_VIDEO_TEMPLATE.format(flv.split("flv/")[1].split("vp6")[0])
     except IndexError:
@@ -111,7 +118,7 @@ def get_m3u8_url(flv):
 
 def get_search_url(query=None, tid=None, pid=None):
     """Gets a full URL for a search page"""
-    language = "en" if tid or pid else SEARCH_LANGUAGE
+    language = SEARCH_LANGUAGE
     query = "" if query is None else "&filter={}".format(query)
     tid = "" if tid is None else "&themes={}".format(tid)
     pid = "" if pid is None else "&programs={}".format(pid)
