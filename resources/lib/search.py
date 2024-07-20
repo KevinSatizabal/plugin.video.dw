@@ -15,33 +15,20 @@ from . import kodiutils as ku
 
 import xbmc
 
-DW_URI = "https://www.dw.com/"
-DW_MEDIA_URL = "{}en/media-center/".format(DW_URI)
-DW_MEDIA_LIVE_URI = "{}live-tv/s-100825".format(DW_MEDIA_URL)
-DW_MEDIA_ALL_URL = "{}all-media-content/s-100826".format(DW_MEDIA_URL)
-
-
-DW_SEARCH_TEMPLATE = "{}mediafilter/research?" \
-                     "lang={{}}&type=18&results=0&showteasers=t&first={{}}{{}}{{}}{{}}".format(DW_URI)
-DW_VIDEO_TEMPLATE = "https://dwhlsondemand-vh.akamaihd.net/i/dwtv_video/flv/{},sor,avc,.mp4.csmil/master.m3u8"
-
 SEARCH_SAVED = ku.get_setting_as_bool("search_saved")
 SEARCH_LANGUAGE = ku.get_setting("search_language")
 SEARCH_MAX_RESULTS = ku.get_setting_as_int("search_max_results")
 SEARCH_TIMEOUT = 60
 
-def get_programme_uri():
-    """Retrieve the program URL for a specific language."""
-    if SEARCH_LANGUAGE == 'en':
-        return "{}en/all-shows/programs-en".format(DW_URI)
-    elif SEARCH_LANGUAGE == 'es':
-        return "{}es/todos-los-programas/programs-es".format(DW_URI)
-    elif SEARCH_LANGUAGE == 'ar':
-        return "{}ar/جميع-البرامج/programs-ar".format(DW_URI)
-    elif SEARCH_LANGUAGE == 'de':
-        return "{}de/alle-sendungen/programs-de".format(DW_URI)
+DW_URI = "https://www.dw.com/"
+DW_MEDIA_URL = "{}en/media-center/".format(DW_URI)
+DW_MEDIA_LIVE_URI = "{}graph-api/en/livestream/{{}}".format(DW_URI)
+DW_MEDIA_ALL_URL = "{}all-media-content/s-100826".format(DW_MEDIA_URL)
+DW_PROGRAMME_URI = "{}en/all-shows/programs-{}".format(DW_URI, SEARCH_LANGUAGE)
 
-DW_PROGRAMME_URI = get_programme_uri()
+DW_SEARCH_TEMPLATE = "{}mediafilter/research?" \
+                     "lang={{}}&type=18&results=0&showteasers=t&first={{}}{{}}{{}}{{}}".format(DW_URI)
+DW_VIDEO_TEMPLATE = "https://dwhlsondemand-vh.akamaihd.net/i/dwtv_video/flv/{},sor,avc,.mp4.csmil/master.m3u8"
 
 searches = Store("app://saved-searches")
 recents = Store("app://recently-viewed")

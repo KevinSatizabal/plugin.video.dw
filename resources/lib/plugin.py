@@ -10,6 +10,8 @@ import routing
 import xbmc
 import xbmcaddon
 import xbmcplugin
+import json
+import requests
 from xbmcgui import ListItem
 
 from resources.lib import kodilogging
@@ -120,23 +122,37 @@ def index():
 
 @plugin.route("/live")
 def live():
-    soup = dws.get_html(dws.DW_MEDIA_LIVE_URI)
-    items = soup.find_all("div", "mediaItem")
-    for item in items:
-        title = item.find("input", {"name": "media_title"}).get("value").encode("utf-8")
-        preview_image = dws.get_url(item.find("input", {"name": "preview_image"}).get("value"))
-        add_menu_item(play_film,
-                      item.find("input", {"name": "channel_name"}).get("value"),
-                      {
-                          "m3u8": item.find("input", {"name": "file_name"}).get("value"),
-                          "title": title
-                      },
-                      ku.art(preview_image),
-                      {"plot": title},
-                      False)
-    xbmcplugin.setContent(plugin.handle, "tvshows")
-    xbmcplugin.setPluginCategory(plugin.handle, ku.localize(32006))  # Live TV
-    xbmcplugin.endOfDirectory(plugin.handle)
+    if dws.SEARCH_LANGUAGE == 'en' or dws.SEARCH_LANGUAGE == 'de':
+        lang = 'english'
+    elif dws.SEARCH_LANGUAGE == 'es':
+        lang = 'spanish'
+    elif dws.SEARCH_LANGUAGE == 'ar':
+        lang = 'arabic'
+    else:
+        lang = ''
+
+    response = requests.get(dws.DW_MEDIA_LIVE_URI.format(lang))
+    if response.status_code == 200:
+        items = response.json()
+
+        for item in items["data"]["livestreamChannels"]:
+            title = item["nextTimeSlots"][0]["program"]["name"]
+            preview_image = item["nextTimeSlots"][0]["program"]["posterImageUrl"]
+            add_menu_item(play_film,
+                item["name"],
+                {
+                    "m3u8": item["hlsVideoSrc"],
+                    "title": title
+                },
+                preview_image,
+                {"plot": title},
+            False)
+            xbmcplugin.setContent(plugin.handle, "tvshows")
+        xbmcplugin.setPluginCategory(plugin.handle, ku.localize(32006))  # Live TV
+        xbmcplugin.endOfDirectory(plugin.handle)
+    else:
+        xbmc.log("Error in the request for live TV: " + str(dws.DW_MEDIA_LIVE_URI.format(lang)), level=xbmc.LOGERROR)
+    
 
 
 @plugin.route("/programme")
