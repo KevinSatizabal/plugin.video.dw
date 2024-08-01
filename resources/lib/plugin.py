@@ -10,7 +10,6 @@ import routing
 import xbmc
 import xbmcaddon
 import xbmcplugin
-import json
 import requests
 from xbmcgui import ListItem
 

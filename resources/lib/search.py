@@ -151,7 +151,7 @@ def get_html(url):
         r = requests.get(url, headers=headers, timeout=SEARCH_TIMEOUT)
         if 200 == r.status_code:
             soup = BeautifulSoup(r.content, "html.parser")
-            c.set(url, r.content, r.headers)
+            # c.set(url, r.content, r.headers)
             return soup
         if 304 == r.status_code:
             c.touch(url, r.headers)
